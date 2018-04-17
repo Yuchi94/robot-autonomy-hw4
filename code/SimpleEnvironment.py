@@ -125,17 +125,17 @@ class SimpleEnvironment(object):
         return [(actions[i], self.discrete_env.ConfigurationToGridCoord(actions[i].footprint[-1])) for i in range(len(actions))]
 
     def ComputeDistance(self, start_coord, end_coord,):
-        return np.linalg.norm(self.discrete_env.GridCoordToConfiguration(start_coord) - self.discrete_env.GridCoordToConfiguration(end_coord))    
+        return np.linalg.norm(np.array([10, 10, 1])*(self.discrete_env.GridCoordToConfiguration(start_coord) - self.discrete_env.GridCoordToConfiguration(end_coord)))
 
     def ComputeHeuristicCost(self, start_coord, end_coord):
         #Use distance as heuristic?
-        return np.linalg.norm(self.discrete_env.GridCoordToConfiguration(start_coord) - self.discrete_env.GridCoordToConfiguration(end_coord))    
+        return np.linalg.norm(np.array([10, 10, 1])*(self.discrete_env.GridCoordToConfiguration(start_coord) - self.discrete_env.GridCoordToConfiguration(end_coord)))
 
 
     def checkCollision(self, coord):
-        pose = self.discrete_env.GridCoordToConfiguration(coord)
-        self.herb.SetCurrentConfiguration(pose)
-        return False
+        # pose = self.discrete_env.GridCoordToConfiguration(coord)
+        # self.herb.SetCurrentConfiguration(pose)
+        # return False
         robot_saver = self.robot.CreateRobotStateSaver(
               self.robot.SaveParameters.ActiveDOF
             | self.robot.SaveParameters.ActiveManipulator
@@ -147,9 +147,10 @@ class SimpleEnvironment(object):
         if (lower_limits > config).any() or (upper_limits < config).any():
             return True
 
-        with robot_saver, env:
-
-            return self.robot.GetEnv().CheckCollision(self.robot.GetEnv().GetBodies()[1])
+        # with robot_saver, env:
+        pose = self.discrete_env.GridCoordToConfiguration(coord)
+        self.herb.SetCurrentConfiguration(pose)
+        return self.robot.GetEnv().CheckCollision(self.robot.GetEnv().GetBodies()[1])
 
 
         # pose = self.discrete_env.GridCoordToConfiguration(coord)
