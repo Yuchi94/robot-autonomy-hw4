@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import argparse, numpy, openravepy, time
+import argparse, numpy, openravepy, time, pdb
 
 from HerbRobot import HerbRobot
 from HerbEnvironment import HerbEnvironment

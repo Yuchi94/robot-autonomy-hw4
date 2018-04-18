@@ -1,4 +1,7 @@
-import logging, numpy, openravepy
+import logging, openravepy
+import pdb
+import numpy as np
+np.random.seed(0)
 
 class GraspPlanner(object):
 
@@ -17,12 +20,21 @@ class GraspPlanner(object):
 
         base_pose = None
         grasp_config = None
-       
         ###################################################################
         # TODO: Here you will fill in the function to compute
         #  a base pose and associated grasp config for the 
         #  grasping the bottle
         ###################################################################
+        grasps = gmodel.grasps
+        grasp_indices = gmodel.graspindices
+        for grasp in grasps:
+            grasp[grasp_indices.get('performance')] = self.eval_grasp(gmodel, grasp)
+
+        order = np.argsort(grasps[:, grasp_indices.get('performance')[0]])
+        order = order[::-1]
+        grasp_config = grasps[order[0]]
+
+        pdb.set_trace()
         
         return base_pose, grasp_config
 
@@ -54,4 +66,32 @@ class GraspPlanner(object):
         # Grasp the bottle
         task_manipulation = openravepy.interfaces.TaskManipulation(self.robot)
         task_manipultion.CloseFingers()
-    
+
+
+    def eval_grasp(self, gmodel, grasp):
+       
+       with self.robot:
+           #contacts is a 2d array, where contacts[i,0-2] are the positions of contact i and contacts[i,3-5] is the direction
+          try:
+            contacts,finalconfig,mindist,volume = gmodel.testGrasp(grasp=grasp,translate=True,forceclosure=False)
+            
+            obj_position = gmodel.target.GetTransform()[0:3,3]
+            # for each contact
+            G = np.zeros([6, 0]) #the wrench matrix
+            for c in contacts:
+              pos = c[0:3] - obj_position
+              dir = -c[3:] #this is already a unit vector
+              g = np.expand_dims(np.concatenate((dir, np.cross(pos,dir))), axis = 1)
+              G = np.concatenate((G, g), axis = 1)
+              
+            w, v =  np.linalg.eig(np.dot(G, G.T))
+            eigs = np.sqrt(w + 0.000001)
+            Q = np.min(eigs)
+            return Q #change this
+
+          except openravepy.planning_error,e:
+            #you get here if there is a failure in planning
+            #example: if the hand is already intersecting the object at the initial position/orientation
+            return  0.00 # TODO you may want to change this
+
+
