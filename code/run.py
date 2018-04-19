@@ -42,8 +42,8 @@ if __name__ == "__main__":
     env.Add(robot)
         
     theta = -numpy.pi/4.
-    robot_pose = numpy.array([[numpy.cos(theta), -numpy.sin(theta), 0, -1.25],
-                              [numpy.sin(theta),  numpy.cos(theta), 0,  0.82],
+    robot_pose = numpy.array([[numpy.cos(theta), -numpy.sin(theta), 0, -1.8],
+                              [numpy.sin(theta),  numpy.cos(theta), 0,  0.8],
                               [0.              ,  0.              , 1,  0.  ],
                               [0.              ,  0.              , 0,  1.  ]])
     robot.SetTransform(robot_pose)
