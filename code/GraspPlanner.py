@@ -88,17 +88,13 @@ class GraspPlanner(object):
             minDist = 1e10
             for pose in poses:
 
-                # Set to pose and check for collision
-
-                continuous_pose = copy.deepcopy([pose[4], pose[5], angle[2]])
-                node = self.base_planner.planning_env.discrete_env.ConfigurationToNodeId(continuous_pose)
+                # Set to discrete pose 
+                node = self.base_planner.planning_env.discrete_env.ConfigurationToNodeId(self.convertPose(pose))
                 discrete_pose = self.base_planner.planning_env.discrete_env.NodeIdToConfiguration(node)
                 
-                pdb.set_trace()
-
-                self.robot.SetTransform(pose)
-
-
+                # convert back again and check for collision
+                base_pose = self.convertPoseBack(discrete_pose)
+                self.robot.SetTransform(base_pose)
                 obstacles = self.robot.GetEnv().GetBodies()
                 if self.robot.GetEnv().CheckCollision(self.robot, obstacles[1]) == False:
 
@@ -110,8 +106,6 @@ class GraspPlanner(object):
                     if not grasp_config is None: # check validity
 
                         self.robot.SetActiveDOFValues(grasp_config)
-                        self.robot.SetTransform(pose)
-                        base_pose = self.robot.GetTransform() # we get a homogeneous transform this way
 
                         # compare dist to find min!
                         dist = self.basePoseDistance(initial_pose, base_pose)
@@ -121,14 +115,14 @@ class GraspPlanner(object):
                             minDist = dist
 
 
-                        self.robot.SetActiveDOFValues(grasp_config_ret)
-                        self.robot.SetTransform(base_pose_ret)
-                        raw_input("Collision-free config found (enter)...")
+                    self.robot.SetActiveDOFValues(grasp_config_ret)
+                    self.robot.SetTransform(base_pose_ret)
+                    raw_input("Collision-free config found (enter)...")
 
-                        self.robot.SetTransform(initial_pose)
-                        self.robot.SetActiveDOFValues(initial_config)
+                    self.robot.SetTransform(initial_pose)
+                    self.robot.SetActiveDOFValues(initial_config)
 
-                        return self.convertPose(base_pose_ret), grasp_config_ret, base_pose_ret
+                    return self.convertBasePose(base_pose_ret), grasp_config_ret, base_pose_ret
 
 
     def basePoseDistance(self, initial_pose, final_pose):
@@ -136,13 +130,23 @@ class GraspPlanner(object):
 
 
     def convertPose(self, H):
-        # homogeneous to x,y,heading
-        x,y,z = self.mat2euler(H)
-        pose = [H[0][3], H[1][3], z]
-        print "Homogeneous:", H
-        print "X,Y,Heading:", pose
+        angle = openravepy.axisAngleFromQuat(H)
+        pose = [H[4], H[5], angle[2]]
         return pose
 
+    def convertPoseBack(self, pose):
+        H = np.identity(4)
+        H[0][3] = pose[0]
+        H[1][3] = pose[1]
+        c, s = np.cos(pose[2]), np.sin(pose[2])
+        R = np.matrix([[c, -s], [s, c]])
+        H[0:2,0:2] = R
+        return H
+
+    def convertBasePose(self, H):
+        x,y,z = self.mat2euler(H)
+        pose = [H[0][3], H[1][3], z]
+        return pose
 
     # https://afni.nimh.nih.gov/pub/dist/src/pkundu/meica.libs/nibabel/eulerangles.py
     def mat2euler(self, M, cy_thresh=None):
