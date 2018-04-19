@@ -107,12 +107,21 @@ class GraspPlanner(object):
 
                         raw_input("Collision-free config found (enter)...")
 
-            self.robot.SetTransform(initial_pose)
-            self.robot.SetActiveDOFValues(initial_config)
+                        self.robot.SetTransform(initial_pose)
+                        self.robot.SetActiveDOFValues(initial_config)
 
-            return base_pose, grasp_config
+                        return self.convertPose(base_pose), grasp_config
 
+    def convertPose(self, H):
 
+        # homogeneous to x,y,heading
+        angle = openravepy.axisAngleFromQuat(H)
+        pose = [H[4], H[5], angle[2]]
+        
+        print "Homogeneous:", H
+        print "X,Y,Heading:", pose
+
+        return pose
 
     def PlanToGrasp(self, obj):
 
