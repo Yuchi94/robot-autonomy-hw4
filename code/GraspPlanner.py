@@ -90,27 +90,29 @@ class GraspPlanner(object):
                 self.robot.SetTransform(base_pose)
                 self.robot.SetDOFValues(*jointstate)
 
-                raw_input("Here's a randomly(?) sampled base_pose (enter)...")
+                raw_input("Here's a randomly sampled base_pose (enter)...")
 
                 grasp_config = self.manip.FindIKSolution(Tgrasp,
                     filteroptions=openravepy.IkFilterOptions.CheckEnvCollisions.IgnoreEndEffectorCollisions)
 
-                self.robot.SetActiveDOFValues(grasp_config)
+                if not grasp_config is None: # check validity
 
-                raw_input("Here's the Arm Position we calc'd with IK (enter)...")
-
-                obstacles = self.robot.GetEnv().GetBodies()
-                if self.robot.GetEnv().CheckCollision(self.robot, obstacles[1]) == False:
-
-                    self.robot.SetTransform(base_pose)
                     self.robot.SetActiveDOFValues(grasp_config)
 
-                    raw_input("Final collision-free poses found (enter)...")
+                    raw_input("Here's the Arm Position we calc'd with IK (enter)...")
 
-                    self.robot.SetTransform(initial_pose)
-                    self.robot.SetActiveDOFValues(initial_config)
+                    obstacles = self.robot.GetEnv().GetBodies()
+                    if self.robot.GetEnv().CheckCollision(self.robot, obstacles[1]) == False:
 
-                    return  base_pose, grasp_config
+                        self.robot.SetTransform(base_pose)
+                        self.robot.SetActiveDOFValues(grasp_config)
+
+                        raw_input("Final collision-free poses found (enter)...")
+
+                        self.robot.SetTransform(initial_pose)
+                        self.robot.SetActiveDOFValues(initial_config)
+
+            return  base_pose, grasp_config
 
 
 
