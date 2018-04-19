@@ -9,17 +9,18 @@ class HerbEnvironment(object):
     
     def __init__(self, herb):
         self.robot = herb.robot
-
+        self.herb = herb
         # add a table and move the robot into place
-        #self.table = self.robot.GetEnv().ReadKinBodyXMLFile('models/objects/table.kinbody.xml')
-        '''self.robot.GetEnv().Add(self.table)
+        '''
+        self.table = self.robot.GetEnv().ReadKinBodyXMLFile('models/objects/table.kinbody.xml')
+        #self.robot.GetEnv().Add(self.table)
 
         table_pose = numpy.array([[ 0, 0, -1, 0.6], 
                                   [-1, 0,  0, 0], 
                                   [ 0, 1,  0, 0], 
                                   [ 0, 0,  0, 1]])
         self.table.SetTransform(table_pose)
-	'''
+        '''
         # set the camera
         camera_pose = numpy.array([[ 0.3259757 ,  0.31990565, -0.88960678,  2.84039211],
                                    [ 0.94516159, -0.0901412 ,  0.31391738, -0.87847549],
@@ -36,7 +37,8 @@ class HerbEnvironment(object):
         
     def checkCollision(self, config):
         self.robot.SetActiveDOFValues(config)
-        return self.robot.GetEnv().CheckCollision(self.robot, self.table)
+	table = self.robot.GetEnv().GetBodies()[1]
+        return self.robot.GetEnv().CheckCollision(self.robot, table)
 
     def GenerateRandomConfiguration(self):
         lower_limits, upper_limits = self.robot.GetActiveDOFLimits()

@@ -8,7 +8,7 @@ from SimpleRobot import SimpleRobot
 from SimpleEnvironment import SimpleEnvironment
 from GraspPlanner import GraspPlanner
 from AStarPlanner import AStarPlanner
-# TODO: Import the applicable RRTPlanner
+from RRTConnectPlanner import RRTConnectPlanner
 
 if __name__ == "__main__":
     
@@ -76,10 +76,11 @@ if __name__ == "__main__":
     base_env = SimpleEnvironment(herb_base, resolution)
 
     base_planner = AStarPlanner(base_env, visualize = False)
-    arm_planner = None
+    arm_planner = RRTConnectPlanner(arm_env, visualize = False) 
     # TODO: Here initialize your arm planner
-  
+    
     # add a table and move the robot into place
+    
     table = env.ReadKinBodyXMLFile('models/objects/table.kinbody.xml')
     env.Add(table)
     
@@ -88,7 +89,7 @@ if __name__ == "__main__":
                               [ 0, 1,  0, 0], 
                               [ 0, 0,  0, 1]])
     table.SetTransform(table_pose)
-
+ 
     # set a bottle on the table
     bottle = herb.robot.GetEnv().ReadKinBodyXMLFile('models/objects/fuze_bottle.kinbody.xml')
     herb.robot.GetEnv().Add(bottle)

@@ -30,7 +30,7 @@ class HerbRobot(object):
             traj.Insert(idx, pt)
             idx = idx + 1
 
-        openravepy.planningutils.RetimeActiveDOFTrajectory(traj, self.robot, maxvelmult=1, maxaccelmult=1, hastimestamps=False, plannername='ParabolicTrajectoryRetimer')
+        openravepy.planningutils.RetimeActiveDOFTrajectory(traj, self.robot, maxvelmult=1, maxaccelmult=1, hastimestamps=False)#, plannername='ParabolicTrajectoryRetimer')
 
         return traj
 
