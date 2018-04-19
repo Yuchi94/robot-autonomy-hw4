@@ -60,7 +60,7 @@ class GraspPlanner(object):
         # Ordering grasps
         if False:
             for grasp in grasps:
-                grasp[grasp_indices.get('performance')] = eval_grasp(gmodel, grasp)
+                grasp[grasp_indices.get('performance')] = self.eval_grasp(gmodel, grasp)
             order = np.argsort(grasps[:, grasp_indices.get('performance')[0]])
             order = order[::-1]
             grasp_config = grasps[order[0]] # select best grasp
