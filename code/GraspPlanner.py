@@ -85,7 +85,6 @@ class GraspPlanner(object):
             initial_pose = self.robot.GetTransform()
 
             # Iterate through new poses to find a valid configuration
-            minDist = 1e10
             for pose in poses:
 
                 # Set to discrete pose 
@@ -105,24 +104,15 @@ class GraspPlanner(object):
 
                     if not grasp_config is None: # check validity
 
+                        ### PEEK AT DESIRED POSE ###
                         self.robot.SetActiveDOFValues(grasp_config)
+                        self.robot.SetTransform(base_pose)
+                        raw_input("Collision-free config found (enter)...")
 
-                        # compare dist to find min!
-                        dist = self.basePoseDistance(initial_pose, base_pose)
-                        if dist < minDist:
-                            base_pose_ret = base_pose
-                            grasp_config_ret = grasp_config
-                            minDist = dist
+                        self.robot.SetTransform(initial_pose)
+                        self.robot.SetActiveDOFValues(initial_config)
 
-
-                    self.robot.SetActiveDOFValues(grasp_config_ret)
-                    self.robot.SetTransform(base_pose_ret)
-                    raw_input("Collision-free config found (enter)...")
-
-                    self.robot.SetTransform(initial_pose)
-                    self.robot.SetActiveDOFValues(initial_config)
-
-                    return self.convertBasePose(base_pose_ret), grasp_config_ret, base_pose_ret
+                        return self.convertBasePose(base_pose), grasp_config
 
 
     def basePoseDistance(self, initial_pose, final_pose):
@@ -134,6 +124,7 @@ class GraspPlanner(object):
         pose = [H[4], H[5], angle[2]]
         return pose
 
+
     def convertPoseBack(self, pose):
         H = np.identity(4)
         H[0][3] = pose[0]
@@ -143,10 +134,12 @@ class GraspPlanner(object):
         H[0:2,0:2] = R
         return H
 
+
     def convertBasePose(self, H):
         x,y,z = self.mat2euler(H)
         pose = [H[0][3], H[1][3], z]
         return pose
+
 
     # https://afni.nimh.nih.gov/pub/dist/src/pkundu/meica.libs/nibabel/eulerangles.py
     def mat2euler(self, M, cy_thresh=None):
@@ -171,10 +164,11 @@ class GraspPlanner(object):
             x = 0.0
         return x, y, z
 
+
     def PlanToGrasp(self, obj):
 
         # Next select a pose for the base and an associated ik for the arm
-        base_pose, grasp_config, test = self.GetBasePoseForObjectGrasp(obj)
+        base_pose, grasp_config = self.GetBasePoseForObjectGrasp(obj)
 
         if base_pose is None or grasp_config is None:
             print 'Failed to find solution'
@@ -187,10 +181,6 @@ class GraspPlanner(object):
 
         print 'Executing base trajectory'
         self.base_planner.planning_env.herb.ExecuteTrajectory(base_traj)
-
-        raw_input("...")
-        self.robot.SetTransform(test)
-        raw_input("...")
 
         # Now plan the arm to the grasp configuration
         start_config = np.array(self.arm_planner.planning_env.herb.GetCurrentConfiguration())

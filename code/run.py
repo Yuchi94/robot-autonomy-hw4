@@ -41,9 +41,9 @@ if __name__ == "__main__":
     robot = env.ReadRobotXMLFile('models/robots/herb2_padded.robot.xml')
     env.Add(robot)
         
-    theta = -numpy.pi/4.
+    theta = -numpy.pi/2.
     robot_pose = numpy.array([[numpy.cos(theta), -numpy.sin(theta), 0, -1.8],
-                              [numpy.sin(theta),  numpy.cos(theta), 0,  0.8],
+                              [numpy.sin(theta),  numpy.cos(theta), 0,  2],
                               [0.              ,  0.              , 1,  0.  ],
                               [0.              ,  0.              , 0,  1.  ]])
     robot.SetTransform(robot_pose)
