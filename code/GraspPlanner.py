@@ -27,95 +27,90 @@ class GraspPlanner(object):
         self.env = self.robot.GetEnv()
         self.manip = self.robot.GetActiveManipulator()
 
+        # Inverse Reachability Model
+        self.irmodel = openravepy.databases.inversereachability.InverseReachabilityModel(self.robot)
+        
+        starttime = time.time()
+        if not self.irmodel.load():
+            print "inversereachability model failed to load, let's generate..."
+            self.irmodel.autogenerate()
+            self.irmodel.load()
+        print 'time to load inverse-reachability model: %fs'%(time.time()-starttime)
+
             
     def GetBasePoseForObjectGrasp(self, obj):
-
-        print "\nGetBasePoseForObjectGrasp()...\n"
-
-        # Load grasp database
-        gmodel = openravepy.databases.grasping.GraspingModel(self.robot, obj)
-        if not gmodel.load():
-            gmodel.autogenerate()
-
-        base_pose = None
-        grasp_config = None
 
         ###################################################################
         #  Here you will fill in the function to compute
         #  a base pose and associated grasp config for the 
         #  grasping the bottle
         ###################################################################
+
+        base_pose = None
+        grasp_config = None
+
+        # Load grasp database
+        gmodel = openravepy.databases.grasping.GraspingModel(self.robot, obj)
+        if not gmodel.load():
+            gmodel.autogenerate()
         
         grasps = gmodel.grasps
         grasp_indices = gmodel.graspindices
 
-        # for grasp in grasps:
-        #     grasp[grasp_indices.get('performance')] = eval_grasp(gmodel, grasp)
-        # order = np.argsort(grasps[:, grasp_indices.get('performance')[0]])
-        # order = order[::-1]
-        # grasp_config = grasps[order[0]] # select best grasp
+        # Ordering grasps
+        if False:
+            for grasp in grasps:
+                grasp[grasp_indices.get('performance')] = eval_grasp(gmodel, grasp)
+            order = np.argsort(grasps[:, grasp_indices.get('performance')[0]])
+            order = order[::-1]
+            grasp_config = grasps[order[0]] # select best grasp
+        else:
+            grasp_config = grasps[0] # skip odering to make it faster
 
-        grasp_config = grasps[0] # select best grasp
+        # Let's work with the our newly generated grasp 
+        if not grasp_config is None:
 
-        gmodel.showgrasp(grasp_config)
+            print "Here's our 'optimal' grasp"
+            gmodel.showgrasp(grasp_config) 
 
-        # Get Grasp Transform
-        Tgrasp = gmodel.getGlobalGraspTransform(grasp_config, collisionfree = True)
+            # Get Grasp Transform
+            Tgrasp = gmodel.getGlobalGraspTransform(grasp_config, collisionfree = True)
 
-        # Inverse Reachability Model
-        irmodel = openravepy.databases.inversereachability.InverseReachabilityModel(self.robot)
-        
-        starttime = time.time()
-        if not irmodel.load():
-            print "inversereachability model failed to load, let's generate..."
-            irmodel.autogenerate()
-            irmodel.load()
-        print 'time to load inverse-reachability model: %fs'%(time.time()-starttime)
+            # get gaussian kernels for pose sampling around grasp tf
+            densityfn, samplerfn, bounds = self.irmodel.computeBaseDistribution(Tgrasp)
+            poses, jointstate = samplerfn(100)
 
-        densityfn, samplerfn, bounds = irmodel.computeBaseDistribution(Tgrasp)
+            # Store Initial Poses
+            initial_pose = self.robot.GetTransform()
+            initial_config = self.robot.GetActiveDOFValues()
 
-        # initialize sampling parameters
-        poses, jointstate = samplerfn(100)
-        self.manip = self.robot.GetActiveManipulator()
-        start_pose = self.robot.GetTransform()
+            # Iterate through new poses to find a valid configuration
+            for base_pose in poses:
 
-        initial_pose = self.robot.GetTransform()
-        print "initial_pose", initial_pose
-        initial_config = self.robot.GetActiveDOFValues()
-        print "initial_config", initial_config
+                self.robot.SetTransform(base_pose)
+                self.robot.SetDOFValues(*jointstate)
 
-        raw_input("Initial poses found (enter)...")
+                raw_input("Here's a randomly(?) sampled base_pose (enter)...")
 
-        for pose in poses:
+                grasp_config = self.manip.FindIKSolution(Tgrasp,
+                    filteroptions=openravepy.IkFilterOptions.CheckEnvCollisions.IgnoreEndEffectorCollisions)
 
-            self.robot.SetTransform(pose)
-            self.robot.SetDOFValues(*jointstate)
-
-            raw_input("Set to pose (enter)...")
-
-            grasp_config = self.manip.FindIKSolution(Tgrasp,
-                filteroptions=openravepy.IkFilterOptions.CheckEnvCollisions.IgnoreEndEffectorCollisions)
-
-            self.robot.SetActiveDOFValues(grasp_config)
-
-            raw_input("Set to config (enter)...")
-
-            obstacles = self.robot.GetEnv().GetBodies()
-            if not grasp_config is None and self.robot.GetEnv().CheckCollision(self.robot, obstacles[1]) == False:
-
-                print "grasp_config", grasp_config
-                print "base_pose", base_pose
-
-                self.robot.SetTransform(pose)
                 self.robot.SetActiveDOFValues(grasp_config)
 
-                # self.base_planner.planning_env.herb.SetCurrentConfiguration(base_pose)
+                raw_input("Here's the Arm Position we calc'd with IK (enter)...")
 
-                raw_input("Final poses found (enter)...")
+                obstacles = self.robot.GetEnv().GetBodies()
+                if self.robot.GetEnv().CheckCollision(self.robot, obstacles[1]) == False:
 
-                self.base_planner.planning_env.herb.SetCurrentConfiguration(init_config)
+                    self.robot.SetTransform(base_pose)
+                    self.robot.SetActiveDOFValues(grasp_config)
 
-                return  base_pose, grasp_config # discrete_pose ?
+                    raw_input("Final collision-free poses found (enter)...")
+
+                    self.robot.SetTransform(initial_pose)
+                    self.robot.SetActiveDOFValues(initial_config)
+
+                    return  base_pose, grasp_config
 
 
 
