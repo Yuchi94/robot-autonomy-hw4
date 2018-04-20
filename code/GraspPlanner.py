@@ -1,21 +1,9 @@
-# import logging, openravepy
-import pdb
-# import numpy as np
-# np.random.seed(0)
-
 import logging, openravepy
-import os
-import copy
-import time
-import math
+from DiscreteEnvironment import DiscreteEnvironment
 import numpy as np
 np.random.seed(0)
-import scipy
-from numpy import linalg
 import time
-from DiscreteEnvironment import DiscreteEnvironment
-import IPython
-import random
+import math
 
 class GraspPlanner(object):
 
@@ -23,9 +11,6 @@ class GraspPlanner(object):
         self.robot = robot
         self.base_planner = base_planner
         self.arm_planner = arm_planner
-        # ADDED
-        self.env = self.robot.GetEnv()
-        self.manip = self.robot.GetActiveManipulator()
 
         # Inverse Reachability Model
         self.irmodel = openravepy.databases.inversereachability.InverseReachabilityModel(self.robot)
@@ -99,7 +84,7 @@ class GraspPlanner(object):
 
                     # Find grasp config
                     self.robot.SetDOFValues(*jointstate)
-                    grasp_config = self.manip.FindIKSolution(Tgrasp,
+                    grasp_config = self.robot.GetActiveManipulator().FindIKSolution(Tgrasp,
                         filteroptions=openravepy.IkFilterOptions.CheckEnvCollisions.IgnoreEndEffectorCollisions)
 
                     if not grasp_config is None: # check validity
